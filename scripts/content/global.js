@@ -388,9 +388,8 @@ function showNewChatPage() {
       document.querySelector('#auto-click-button')?.classList?.replace('btn-primary', 'btn-neutral');
     });
     runningPromptChainSteps = undefined;
-    runningPromptChainIndex = 0;
-    document.title = 'New Page';
-    const planName = account?.accounts?.default?.entitlement?.subscription_plan || 'chatgptfreeplan';
+    runningPromptChainIndex = 0;    document.title = 'New Page';
+    const planName = 'chatgptplusplan'; // Forzar plan premium
     if (!conversationsAreSynced) return;
     const focusedConversations = document.querySelectorAll('.selected');
     focusedConversations.forEach((c) => {

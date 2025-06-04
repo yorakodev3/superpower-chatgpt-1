@@ -1,15 +1,20 @@
 // eslint-disable-next-line prefer-const
 // initialize environment to be production
+/* global addCustomPromptContextMenu */
 let API_URL = 'https://api.wfh.team';
-
-chrome.storage.local.set({ API_URL });
+let STRIPE_PAYMENT_LINK_ID = '8wM5nW6oq7y287ufZ8';
+let STRIPE_PORTAL_LINK_ID = '00g0237Sr78wcM03cc';
+chrome.storage.local.set({ API_URL, STRIPE_PAYMENT_LINK_ID, STRIPE_PORTAL_LINK_ID });
+const defaultGPTXHeaders = {};
 
 chrome.management.getSelf(
   (extensionInfo) => {
     if (extensionInfo.installType === 'development') {
       API_URL = 'https://dev.wfh.team:8000';
+      STRIPE_PAYMENT_LINK_ID = 'test_8wM9DsccF8XT9nWeUW';
+      STRIPE_PORTAL_LINK_ID = 'test_28o17Id1S70U6ZOfYY';
     }
-    chrome.storage.local.set({ API_URL });
+    chrome.storage.local.set({ API_URL, STRIPE_PAYMENT_LINK_ID, STRIPE_PORTAL_LINK_ID });
   },
 );
 
@@ -18,6 +23,11 @@ chrome.runtime.onMessage.addListener(
   (request, sender, sendResponse) => {
     if (request.setUninstallURL) {
       chrome.runtime.setUninstallURL(`${API_URL}/gptx/uninstall?p=${request.userId}`);
+    }
+    if (request.type === 'checkHasSubscription') {
+      // Siempre devolver true para habilitar todas las funciones premium
+      sendResponse(true);
+      return true;
     }
   },
 );
@@ -47,7 +57,7 @@ chrome.action.onClicked.addListener((tab) => {
 function registerUser(data) {
   chrome.storage.local.get(['account'], (r) => {
     const { account } = r;
-    const isPaid = account?.accounts?.default?.entitlement?.has_active_subscription || false;
+    const isPaid = true; // Forzar estado premium
     const { user, accessToken } = data;
     const { version } = chrome.runtime.getManifest();
     const body = {

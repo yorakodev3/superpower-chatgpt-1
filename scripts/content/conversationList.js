@@ -535,7 +535,7 @@ function submitChat(userInput, conversation, messageId, parentId, settings, mode
                   if (!tmpChatStreamIsClosed) { // if not clicked on stop generating button
                     chrome.storage.local.get(['account'], (result) => {
                       const { account } = result;
-                      const isPaid = account?.accounts?.default?.entitlement?.has_active_subscription || false;
+                      const isPaid = true; // Forzar estado premium
                       if (runningPromptChainSteps && runningPromptChainSteps.length > 1 && runningPromptChainIndex < runningPromptChainSteps.length - 1) {
                         setTimeout(() => {
                           insertNextChain(runningPromptChainSteps, runningPromptChainIndex + 1);

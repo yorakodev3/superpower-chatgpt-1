@@ -24,11 +24,9 @@ window.addEventListener('modelsReceived', (event) => {
       settings: { ...settings, selectedModel: settings.selectedModel || data.models?.[0] },
     });
     if (data.models.map((m) => m.slug).find((m) => m.includes('plugins'))) {
-      const isPaid = account?.accounts?.default?.entitlement?.has_active_subscription || false;
-      if (isPaid) {
-        getAllPlugins();
-        getInstalledPlugins();
-      }
+      // Siempre activar plugins, no importa el estado de suscripción
+      getAllPlugins();
+      getInstalledPlugins();
     }
   });
 });

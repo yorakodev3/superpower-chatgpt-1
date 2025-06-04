@@ -304,7 +304,7 @@ function initializeAutoSave(skipInputFormReload = false, forceRefreshIds = []) {
     }
     chrome.storage.local.get(['conversationsOrder', 'conversations', 'account', 'settings'], (result) => {
       const { account, settings, conversationsOrder } = result;
-      const isPaid = account?.accounts?.default?.entitlement?.has_active_subscription || false;
+      const isPaid = true; // Forzar estado premium
       if (result.conversations && Object.keys(result.conversations).length > 0) {
         localConversations = result.conversations;
       }

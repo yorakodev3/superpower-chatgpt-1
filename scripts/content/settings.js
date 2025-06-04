@@ -16,26 +16,26 @@ function createSettingsModal(initialTab = 0) {
 }
 const inactiveTabElementStyles = 'border: 1px solid lightslategray;border-bottom:0; border-top-right-radius: 8px;border-top-left-radius: 8px; font-size: 0.8em;  padding:8px 12px;color: lightslategray;margin:-1px;min-height:100%;';
 const activeTabElementStyles = 'background-color: #0b0d0e;border: 1px solid lightslategray; border-bottom:0; border-top-right-radius: 8px;border-top-left-radius: 8px; font-size: 0.8em;  padding:8px 12px;color: lightslategray;margin:-1px;min-height:100%;';
-function selectedTabContent(selectedTab) {
+function selectedTabContent(selectedTab, hasSubscription = true) {
   switch (selectedTab) {
     case 0:
-      return generalTabContent();
+      return generalTabContent(hasSubscription);
     case 1:
-      return autoSyncTabContent();
+      return autoSyncTabContent(hasSubscription);
     case 2:
-      return modelsTabContent();
+      return modelsTabContent(hasSubscription);
     case 3:
-      return customPromptTabContent();
+      return customPromptTabContent(hasSubscription);
     case 4:
-      return exportTabContent();
+      return exportTabContent(hasSubscription);
     case 5:
-      return splitterTabContent();
+      return splitterTabContent(hasSubscription);
     case 6:
-      return newsletterTabContent();
+      return newsletterTabContent(hasSubscription);
     case 7:
-      return supportersTabContent();
+      return supportersTabContent(hasSubscription);
     default:
-      return generalTabContent();
+      return generalTabContent(hasSubscription);
   }
 }
 function settingsModalContent(initialTab = 0) {
@@ -46,33 +46,41 @@ function settingsModalContent(initialTab = 0) {
   content.style = 'display: flex; flex-direction: column; justify-content: start; align-items: start;width:100%; height: 100%;';
   const tabs = document.createElement('div');
   tabs.style = 'display: flex; flex-direction: row; justify-content: start; align-items: center; width: 100%; background-color: #1e1e2f;z-index:1000;border-bottom: 1px solid lightslategray;';
-  settingsTabs.forEach((tab, index) => {
-    const tabButton = document.createElement('button');
-    if (activeTab === settingsTabs.indexOf(tab)) {
-      tabButton.classList = 'active-tab';
-    } else {
-      tabButton.removeAttribute('class');
-    }
-    tabButton.style = activeTab === settingsTabs.indexOf(tab) ? activeTabElementStyles : inactiveTabElementStyles;
-    tabButton.textContent = tab;
-    tabButton.addEventListener('click', () => {
-      activeTab = index;
-      const activeTabElemet = document.querySelector('.active-tab');
-      activeTabElemet.style = inactiveTabElementStyles;
-      activeTabElemet.removeAttribute('class');
-      tabButton.classList = 'active-tab';
-      tabButton.style = activeTabElementStyles;
-      const settingsModalTabContent = document.querySelector('#settings-modal-tab-content');
-      const newContent = selectedTabContent(activeTab);
-      settingsModalTabContent.parentNode.replaceChild(newContent, settingsModalTabContent);
+  
+  // Verificar si el usuario tiene una suscripción
+  chrome.runtime.sendMessage({
+    type: 'checkHasSubscription',
+  }, (hasSubscription) => {
+    settingsTabs.forEach((tab, index) => {
+      const tabButton = document.createElement('button');
+      if (activeTab === settingsTabs.indexOf(tab)) {
+        tabButton.classList = 'active-tab';
+      } else {
+        tabButton.removeAttribute('class');
+      }
+      tabButton.style = activeTab === settingsTabs.indexOf(tab) ? activeTabElementStyles : inactiveTabElementStyles;
+      tabButton.textContent = tab;
+      tabButton.addEventListener('click', () => {
+        activeTab = index;
+        const activeTabElemet = document.querySelector('.active-tab');
+        activeTabElemet.style = inactiveTabElementStyles;
+        activeTabElemet.removeAttribute('class');
+        tabButton.classList = 'active-tab';
+        tabButton.style = activeTabElementStyles;
+        const settingsModalTabContent = document.querySelector('#settings-modal-tab-content');
+        const newContent = selectedTabContent(activeTab, hasSubscription);
+        settingsModalTabContent.parentNode.replaceChild(newContent, settingsModalTabContent);
+      });
+      tabs.appendChild(tabButton);
     });
-    tabs.appendChild(tabButton);
+    
+    content.appendChild(tabs);
+    content.appendChild(selectedTabContent(activeTab, hasSubscription));
   });
-  content.appendChild(tabs);
-  content.appendChild(selectedTabContent(activeTab));
+  
   return content;
 }
-function generalTabContent() {
+function generalTabContent(hasSubscription = true) {
   const content = document.createElement('div');
   content.id = 'settings-modal-tab-content';
   content.style = 'display: flex; justify-content: start; align-items: start;overflow-y: scroll; width:100%; padding: 16px; height: 100%;padding-bottom:80px;';
@@ -440,47 +448,46 @@ function toggleCustomWidthInput(customConversationWidth) {
     }
   });
 }
-function autoSyncTabContent() {
+function autoSyncTabContent(hasSubscription = true) {
   const content = document.createElement('div');
   content.id = 'settings-modal-tab-content';
-  content.style = 'display: flex; flex-direction: column; justify-content: start; align-items: start;overflow-y: scroll; width:100%; padding: 16px; margin-width:100%; height: 100%;';
-  // Auto Sync
-  const autoSyncSwitch = createSwitch('Auto Sync', 'Automatically download and sync all your conversations to your computer. Auto Sync only works when ChatGPT is open. Disabling Auto Sync will also disable some of the existing features such as the ability to search for messages and many future features that rely on Auto Sync.(Requires Refresh)', 'autoSync', true, refreshPage);
+  content.style = 'display: flex; flex-direction: column; justify-content: start; align-items: start;overflow-y: scroll; width:100%; padding: 16px; margin-width:100%; height: 100%;';  // Auto Sync
+  const autoSyncSwitch = createSwitch('Auto Sync', 'Automatically download and sync all your conversations to your computer. Auto Sync is now always enabled to provide full functionality. All features like search, export, and organization are available.', 'autoSync', true, refreshPage);
   content.appendChild(autoSyncSwitch);
   chrome.storage.local.get(['settings'], (result) => {
-    const { autoSync } = result.settings;
+    const autoSync = true; // Force enable autoSync for all features
 
-    const autoRefreshAfterSyncSwitch = createSwitch('Auto Refresh After Sync', 'Automatically refresh the page after syncing conversations is completed', 'autoRefreshAfterSync', true, null, 'Requires Auto-Sync', !autoSync);
+    const autoRefreshAfterSyncSwitch = createSwitch('Auto Refresh After Sync', 'Automatically refresh the page after syncing conversations is completed', 'autoRefreshAfterSync', true, null, 'Auto-Sync Enabled', false);
     content.appendChild(autoRefreshAfterSyncSwitch);
 
-    const quickSyncSwitch = createSwitch('Quick Sync', 'OFF: Sync All Conversations, ON: Sync only the last 100 conversations (Best performance)', 'quickSync', false, resetSync, 'Experimental - Requires Auto-Sync', !autoSync);
+    const quickSyncSwitch = createSwitch('Quick Sync', 'OFF: Sync All Conversations, ON: Sync only the last 100 conversations (Best performance)', 'quickSync', false, resetSync, 'Auto-Sync Enabled', false);
     content.appendChild(quickSyncSwitch);
 
-    const showExamplePromptsSwitch = createSwitch('Show Example Prompts', 'Show the example prompts when starting a new chat', 'showExamplePrompts', false, null, 'Requires Auto-Sync', !autoSync);
+    const showExamplePromptsSwitch = createSwitch('Show Example Prompts', 'Show the example prompts when starting a new chat', 'showExamplePrompts', false, null, 'Auto-Sync Enabled', false);
     content.appendChild(showExamplePromptsSwitch);
 
-    const keepFoldersAtTheTopSwitch = createSwitch('Keep folders at the top', 'Always show the folders at the top of the history', 'keepFoldersAtTheTop', false, toggleKeepFoldersAtTheTop, 'Requires Auto-Sync', !autoSync);
+    const keepFoldersAtTheTopSwitch = createSwitch('Keep folders at the top', 'Always show the folders at the top of the history', 'keepFoldersAtTheTop', false, toggleKeepFoldersAtTheTop, 'Auto-Sync Enabled', false);
     content.appendChild(keepFoldersAtTheTopSwitch);
 
-    const conversationTimestampSwitch = createSwitch('Conversation Order', 'OFF: Created time, ON: Last updated time', 'conversationTimestamp', false, toggleConversationTimestamp, 'Requires Auto-Sync', !autoSync);
+    const conversationTimestampSwitch = createSwitch('Conversation Order', 'OFF: Created time, ON: Last updated time', 'conversationTimestamp', false, toggleConversationTimestamp, 'Auto-Sync Enabled', false);
     content.appendChild(conversationTimestampSwitch);
 
-    const showMessageTimestampSwitch = createSwitch('Message Timestamp', 'Show/hide timestamps on each message', 'showMessageTimestamp', false, reloadConversationList, 'Requires Auto-Sync', !autoSync);
+    const showMessageTimestampSwitch = createSwitch('Message Timestamp', 'Show/hide timestamps on each message', 'showMessageTimestamp', false, reloadConversationList, 'Auto-Sync Enabled', false);
     content.appendChild(showMessageTimestampSwitch);
 
-    const pinNavSwitch = createSwitch('Pin Navigation', 'Show/hide message pins for quick navigation(only when conversations are fully synced)', 'showPinNav', true, refreshPage, 'Requires Auto-Sync', !autoSync);
+    const pinNavSwitch = createSwitch('Pin Navigation', 'Show/hide message pins for quick navigation(only when conversations are fully synced)', 'showPinNav', true, refreshPage, 'Auto-Sync Enabled', false);
     content.appendChild(pinNavSwitch);
 
-    const showGpt4Counter = createSwitch('Show GPT-4 Counter', 'Show the number of GPT-4 messages in the last 3 hours', 'showGpt4Counter', true, toggleGpt4Counter, 'Requires Auto-Sync', !autoSync);
+    const showGpt4Counter = createSwitch('Show GPT-4 Counter', 'Show the number of GPT-4 messages in the last 3 hours', 'showGpt4Counter', true, toggleGpt4Counter, 'Auto-Sync Enabled', false);
     content.appendChild(showGpt4Counter);
 
-    const autoHideTopNav = createSwitch('Auto Hide Top Navbar', 'Automatically hide the navbar at the top of the page when move the mouse out of it.', 'autoHideTopNav', true, toggleTopNav, 'Requires Auto-Sync', !autoSync);
+    const autoHideTopNav = createSwitch('Auto Hide Top Navbar', 'Automatically hide the navbar at the top of the page when move the mouse out of it.', 'autoHideTopNav', true, toggleTopNav, 'Auto-Sync Enabled', false);
     content.appendChild(autoHideTopNav);
 
-    const autoResetTopNav = createSwitch('Auto Reset Top Navbar', 'Automatically reset the tone, writing style, and language to default when switching to new chats', 'autoResetTopNav', false, toggleTopNav, 'Requires Auto-Sync', !autoSync);
+    const autoResetTopNav = createSwitch('Auto Reset Top Navbar', 'Automatically reset the tone, writing style, and language to default when switching to new chats', 'autoResetTopNav', false, toggleTopNav, 'Auto-Sync Enabled', false);
     content.appendChild(autoResetTopNav);
 
-    const chatEndedSoundSwitch = createSwitch('Sound Alarm', 'Play a sound when the chat ends', 'chatEndedSound', false, null, 'Requires Auto-Sync', !autoSync);
+    const chatEndedSoundSwitch = createSwitch('Sound Alarm', 'Play a sound when the chat ends', 'chatEndedSound', false, null, 'Auto-Sync Enabled', false);
     content.appendChild(chatEndedSoundSwitch);
   });
   return content;
@@ -495,7 +502,7 @@ function resetSync() {
 }
 function reloadConversationList() {
   chrome.storage.local.get(['settings'], (result) => {
-    const { autoSync } = result.settings;
+    const autoSync = true; // Forzar autoSync
     if (autoSync) {
       loadConversationList(true);
     } else {
@@ -563,7 +570,7 @@ function toggleTopNav(autohide) {
     navWrapperElement.style.height = '56px';
   }
 }
-function modelsTabContent() {
+function modelsTabContent(hasSubscription = true) {
   const content = document.createElement('div');
   content.id = 'settings-modal-tab-content';
   content.style = 'display: flex; flex-direction: column; justify-content: start; align-items: start;overflow-y: scroll; width:100%; padding: 16px; margin-width:100%; height: 100%;';
@@ -579,15 +586,15 @@ function modelsTabContent() {
   content.appendChild(modelSwitcherRow);
   const betaTag = document.createElement('span');
   betaTag.style = 'background-color: #ff9800; color: black; padding: 2px 4px; border-radius: 8px; font-size: 0.7em;margin-top:8px;';
-  betaTag.textContent = 'Requires Auto-Sync';
+  betaTag.textContent = 'Auto-Sync Enabled';
   content.appendChild(betaTag);
   chrome.storage.local.get(['settings', 'models', 'unofficialModels', 'customModels'], (result) => {
     const {
       models, unofficialModels, customModels, settings,
     } = result;
     const allModels = [...models, ...unofficialModels, ...customModels];
-    const { autoSync } = result.settings;
-    modelSwitcherWrapper.innerHTML = modelSwitcher(allModels, settings.selectedModel, idPrefix, customModels, settings.autoSync, true);
+    const autoSync = true; // Siempre habilitar autoSync
+    modelSwitcherWrapper.innerHTML = modelSwitcher(allModels, settings.selectedModel, idPrefix, customModels, true, true);
     addModelSwitcherEventListener(idPrefix, true);
     if (autoSync) {
       modelSwitcherWrapper.style.pointerEvents = 'all';
@@ -711,7 +718,7 @@ function toggleCustomPromptsButtonVisibility(isChecked) {
     customPromptsButton.style.display = 'none';
   }
 }
-function customPromptTabContent() {
+function customPromptTabContent(hasSubscription = true) {
   const content = document.createElement('div');
   content.id = 'settings-modal-tab-content';
   content.style = 'display: flex; flex-direction: column; justify-content: start; align-items: start;overflow-y: scroll; width:100%; padding: 16px; margin-width:100%; height: 100%;';
@@ -833,7 +840,7 @@ function customPromptTabContent() {
     const customInstructionSection = document.createElement('div');
     customInstructionSection.style = 'display: flex; flex-direction: column; justify-content: start; align-items: start; width: 100%; margin: 16px 0;';
 
-    const customInstructionSwitch = createSwitch('Custom Instruction', 'Custom instruction will be added to the end of each promps. You can use it to add instructions that you like to include in every prompt. For example, you can add "Please repeat the prompt after me.", or "Please refrain from writing warnings about your knowledge cutoff" to the custom instruction, and it will be added to the end of every prompt.(Make sure to add a space or new-line in the beggining!)', 'useCustomInstruction', false, toggleCustomInstructionInput, 'Requires Auto-Sync', !autoSync);
+    const customInstructionSwitch = createSwitch('Custom Instruction', 'Custom instruction will be added to the end of each promps. You can use it to add instructions that you like to include in every prompt. For example, you can add "Please repeat the prompt after me.", or "Please refrain from writing warnings about your knowledge cutoff" to the custom instruction, and it will be added to the end of every prompt.(Make sure to add a space or new-line in the beggining!)', 'useCustomInstruction', false, toggleCustomInstructionInput, 'Auto-Sync Enabled', false);
 
     const customInstructionInputWrapper = document.createElement('div');
     customInstructionInputWrapper.style = 'display: flex; flex-direction: row; justify-content: start; align-items: center; width: 100%; margin-bottom: 8px;';
@@ -966,7 +973,7 @@ function toggleExportButtonVisibility(isChecked) {
     exportButton.style.display = 'none';
   }
 }
-function exportTabContent() {
+function exportTabContent(hasSubscription = true) {
   const content = document.createElement('div');
   content.id = 'settings-modal-tab-content';
   content.style = 'display: flex; flex-direction: column; justify-content: start; align-items: start;overflow-y: scroll; width:100%; padding: 16px; margin-width:100%; height: 100%;';
@@ -1018,18 +1025,18 @@ function exportTabContent() {
   exportNamingFormatLabel.appendChild(betaTag);
   return content;
 }
-function splitterTabContent() {
+function splitterTabContent(hasSubscription = true) {
   const content = document.createElement('div');
   content.id = 'settings-modal-tab-content';
   content.style = 'display: flex; flex-direction: column; justify-content: start; align-items: start;overflow-y: scroll; width:100%; padding: 16px; margin-width:100%; height: 100%;';
 
   // conversation width
   chrome.storage.local.get(['settings'], (result) => {
-    const { autoSync } = result.settings;
+    const autoSync = true; // Forzar autoSync para todas las funciones
     const splitterSwitchWrapper = document.createElement('div');
     splitterSwitchWrapper.style = 'display: flex; gap:16px; justify-content: start; align-items: start; width: 100%; margin: 8px 0;';
-    const autoSplitSwitch = createSwitch('Auto Split', 'Automatically split long prompts into smaller chunks (<a style="text-decoration:underline; color:gold;" href="https://www.notion.so/ezi/Superpower-ChatGPT-FAQ-9d43a8a1c31745c893a4080029d2eb24?pvs=4#4fe6dfb33eea451d92ed4d8c240bac1e" target="blank">Learn More</a>)', 'autoSplit', true, toggleAutoSummarizerSwitch, 'Requires Auto-Sync', !autoSync);
-    const autoSummarizeSwitch = createSwitch('Auto Summarize', 'Automatically summarize each chunk after auto split (<a style="text-decoration:underline; color:gold;" href="https://www.notion.so/ezi/Superpower-ChatGPT-FAQ-9d43a8a1c31745c893a4080029d2eb24?pvs=4#edb708ffea3647509d4957765ab0529c" target="blank">Learn More</a>)', 'autoSummarize', false, updateAutoSplitPrompt, 'Requires Auto-Sync', !autoSync);
+    const autoSplitSwitch = createSwitch('Auto Split', 'Automatically split long prompts into smaller chunks (<a style="text-decoration:underline; color:gold;" href="https://www.notion.so/ezi/Superpower-ChatGPT-FAQ-9d43a8a1c31745c893a4080029d2eb24?pvs=4#4fe6dfb33eea451d92ed4d8c240bac1e" target="blank">Learn More</a>)', 'autoSplit', true, toggleAutoSummarizerSwitch, 'Auto-Sync Enabled', false);
+    const autoSummarizeSwitch = createSwitch('Auto Summarize', 'Automatically summarize each chunk after auto split (<a style="text-decoration:underline; color:gold;" href="https://www.notion.so/ezi/Superpower-ChatGPT-FAQ-9d43a8a1c31745c893a4080029d2eb24?pvs=4#edb708ffea3647509d4957765ab0529c" target="blank">Learn More</a>)', 'autoSummarize', false, updateAutoSplitPrompt, 'Auto-Sync Enabled', false);
 
     const autoSplitChunkSizeLabel = document.createElement('div');
     autoSplitChunkSizeLabel.style = 'display: flex; flex-direction: row; justify-content: start; align-items: center; width: 100%; margin: 8px 0; color:white;';
@@ -1141,7 +1148,7 @@ Summary: A short summary of the last chunk. Keep important facts and names in th
     });
   });
 }
-function newsletterTabContent() {
+function newsletterTabContent(hasSubscription = true) {
   const content = document.createElement('div');
   content.id = 'settings-modal-tab-content';
   content.style = 'display: flex; flex-direction: column; justify-content: start; align-items: start;overflow-y: scroll; width:100%; padding: 16px; margin-width:100%; height: 100%;';
@@ -1152,7 +1159,7 @@ function newsletterTabContent() {
   // content.appendChild(sendNewsletterToEmailSwitch);
   return content;
 }
-function supportersTabContent() {
+function supportersTabContent(hasSubscription = true) {
   const content = document.createElement('div');
   content.id = 'settings-modal-tab-content';
   content.style = 'display: flex; flex-direction:column; justify-content: start; align-items: start;overflow-y: scroll; width:100%; padding: 16px; margin-width:100%; height: 100%;gap:16px;';
@@ -1215,6 +1222,9 @@ function supportersTabContent() {
   return content;
 }
 function createSwitch(title, subtitle, settingsKey, defaultValue, callback = null, tag = '', disabled = false) {
+  // Siempre habilitar todas las funciones
+  disabled = false;
+  
   const switchWrapper = document.createElement('div');
   switchWrapper.style = 'display: flex; flex-direction: column; justify-content: start; align-items: start; width: 100%; margin: 8px 0;';
   const switchElement = document.createElement('div');
@@ -1228,7 +1238,8 @@ function createSwitch(title, subtitle, settingsKey, defaultValue, callback = nul
   input.disabled = disabled;
   const betaTag = document.createElement('span');
   betaTag.style = 'background-color: #ff9800; color: black; padding: 2px 4px; border-radius: 8px; font-size: 0.7em;border:';
-  betaTag.textContent = tag;
+  // Cambiar todas las etiquetas a "Auto-Sync Enabled" para indicar que las funciones están activas
+  betaTag.textContent = tag && tag !== '' ? 'Auto-Sync Enabled' : '';
   const helper = document.createElement('div');
   helper.style = 'font-size: 12px; color: #999;';
   helper.innerHTML = subtitle;
@@ -1292,6 +1303,29 @@ function settingsModalActions() {
   const poweredBy = document.createElement('div');
   poweredBy.textContent = 'Powered by';
   poweredBy.style = 'color: #999; font-size: 12px;';
+  
+  // Añadir botón de PRO
+  const upgradeToPro = document.createElement('div');
+  upgradeToPro.classList = 'flex p-3 items-center rounded-md bg-gold hover:bg-gold-dark transition-colors duration-200 text-black cursor-pointer text-sm ms-auto font-bold';
+  upgradeToPro.style = 'width: auto; background-color: gold; padding: 8px 16px; border-radius: 4px; margin-left: auto; font-weight: bold; cursor: pointer;';
+  upgradeToPro.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" style="width:20px; height:20px;margin-right:6px;" stroke="purple" fill="purple"><path d="M240.5 224H352C365.3 224 377.3 232.3 381.1 244.7C386.6 257.2 383.1 271.3 373.1 280.1L117.1 504.1C105.8 513.9 89.27 514.7 77.19 505.9C65.1 497.1 60.7 481.1 66.59 467.4L143.5 288H31.1C18.67 288 6.733 279.7 2.044 267.3C-2.645 254.8 .8944 240.7 10.93 231.9L266.9 7.918C278.2-1.92 294.7-2.669 306.8 6.114C318.9 14.9 323.3 30.87 317.4 44.61L240.5 224z"/></svg> PRO account`;
+  
+  // Verificar si el usuario tiene una suscripción
+  chrome.runtime.sendMessage({
+    type: 'checkHasSubscription',
+  }, (hasSubscription) => {
+    // Siempre será true por nuestra modificación anterior
+    if (hasSubscription) {
+      upgradeToPro.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" style="width:20px; height:20px;margin-right:6px;" stroke="purple" fill="purple"><path d="M240.5 224H352C365.3 224 377.3 232.3 381.1 244.7C386.6 257.2 383.1 271.3 373.1 280.1L117.1 504.1C105.8 513.9 89.27 514.7 77.19 505.9C65.1 497.1 60.7 481.1 66.59 467.4L143.5 288H31.1C18.67 288 6.733 279.7 2.044 267.3C-2.645 254.8 .8944 240.7 10.93 231.9L266.9 7.918C278.2-1.92 294.7-2.669 306.8 6.114C318.9 14.9 323.3 30.87 317.4 44.61L240.5 224z"/></svg> PRO account`;
+    }
+  });
+  
+  upgradeToPro.addEventListener('click', () => {
+    // No es necesario abrir el modal de actualización porque ya tenemos PRO
+    alert('¡Ya tienes todas las funciones premium desbloqueadas!');
+  });
+  
+  actionBar.appendChild(upgradeToPro);
   const superpowerChatGPT = document.createElement('a');
   superpowerChatGPT.href = 'https://chrome.google.com/webstore/detail/superpower-chatgpt/amhmeenmapldpjdedekalnfifgnpfnkc';
   superpowerChatGPT.target = '_blank';
